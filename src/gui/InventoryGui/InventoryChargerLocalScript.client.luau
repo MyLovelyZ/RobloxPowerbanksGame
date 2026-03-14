@@ -1,1 +1,0 @@
-local InventoryChargerFrame = script.Parent.Parent.Parent.MainGui.FrameFolder.InventoryFrame.MainInventoryFrame.InventoryChargerFrame
