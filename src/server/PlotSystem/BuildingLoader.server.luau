@@ -1,7 +1,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local PlotsFolder = workspace:WaitForChild("PlayersPlots")
+local PlotsFolder = workspace:WaitForChild("Maps"):WaitForChild("Plots")
 local HouseModel = ReplicatedStorage:WaitForChild("Assets"):WaitForChild("Bangunan1")
 
 local function getPlayerPlot(player)
@@ -23,7 +23,7 @@ local function spawnHouse(player)
 		return 
 	end
 
-	local spawnPoint = plot:FindFirstChild("SpawnPoint")
+	local spawnPoint = plot:FindFirstChild("Part")
 	if not spawnPoint then 
 		warn("SpawnPoint tidak ada di plot", plot.Name)
 		return 
@@ -35,7 +35,13 @@ local function spawnHouse(player)
 	house.Name = "Bangunan1"
 
 	if house.PrimaryPart then
-		house:SetPrimaryPartCFrame(spawnPoint.CFrame)
+		local plotNumber = tonumber(plot.Name)
+
+		if plotNumber and plotNumber > 4 then
+			house:SetPrimaryPartCFrame(spawnPoint.CFrame * CFrame.Angles(0, math.rad(180), 0))
+		else
+			house:SetPrimaryPartCFrame(spawnPoint.CFrame)
+		end
 	else
 		warn("PrimaryPart belum diset di Bangunan1!")
 	end
