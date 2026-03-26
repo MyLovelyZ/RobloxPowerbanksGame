@@ -1,9 +1,6 @@
-local ReplicatedStorege = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
-local PlotHolders = Instance.new("Folder")
-PlotHolders.Parent = ReplicatedStorege
-PlotHolders.Name = "PlotHolders"
+local PlotsFolder = workspace.Maps.Plots
 
 Players.PlayerAdded:Connect(function(Player)
 
@@ -11,28 +8,24 @@ Players.PlayerAdded:Connect(function(Player)
 	PlotNumber.Name = "PlotNumber"
 	PlotNumber.Parent = Player
 
-	for i = 1, 8  do
-		if PlotHolders:FindFirstChild(i) then
-			continue
+	for _, Plot in pairs(PlotsFolder:GetChildren()) do
+		local Owner = Plot:FindFirstChild("Owner")
+
+		if Owner and Owner.Value == nil then
+			Owner.Value = Player
+			PlotNumber.Value = tonumber(Plot.Name)
+			break
 		end
-		local ClaimPlot = Instance.new("ObjectValue")
-		ClaimPlot.Parent = PlotHolders
-		ClaimPlot.Name = i
-		ClaimPlot.Value = Player
-
-		PlotNumber.Value = i
-
-		break
 	end
 
 	if PlotNumber.Value == 0 then
 		Player:Kick("Server Penuh")
 	end
 
-	local PlotFolder = workspace.Maps.Plots:FindFirstChild(PlotNumber.Value)
+	local PlotFolder = PlotsFolder:FindFirstChild(tostring(PlotNumber.Value))
+
 	Player.CharacterAdded:Connect(function(character)
 		local TeleportPart = PlotFolder.Teleport
-
 		character:PivotTo(TeleportPart.CFrame)
 	end)
 
@@ -45,7 +38,6 @@ Players.PlayerAdded:Connect(function(Player)
 	local PlayerIcon = Players:GetUserThumbnailAsync(Player.UserId, ThumbnailType, ThumbnailSize)
 
 	Sign.PlayerDisplay.SurfaceGui.PlayerIcon.Image = PlayerIcon
-
 	Sign.PlayerDisplay.SurfaceGui.Enabled = true
 
 end)
