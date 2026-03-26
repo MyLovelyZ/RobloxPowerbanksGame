@@ -13,4 +13,9 @@ Players.PlayerAdded:Connect(function(player)
 	local Inventory = Instance.new("Folder")
 	Inventory.Name = "Inventory"
 	Inventory.Parent = PlayerData
+	
+	local PlotLevel = Instance.new("IntValue")
+	PlotLevel.Name = "PlotLevel"
+	PlotLevel.Value = 1
+	PlotLevel.Parent = PlayerData
 end)
