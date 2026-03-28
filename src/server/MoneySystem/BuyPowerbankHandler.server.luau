@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local BuyEvent = ReplicatedStorage.Remotes:WaitForChild("BuyPowerbankEvent")
 
-local PowerBanks = require(ReplicatedStorage.Shared.Modules.PowerbankData)
+local PowerBanks = require(ReplicatedStorage.Shared.Modules.Data.PowerbankData)
 
 BuyEvent.OnServerEvent:Connect(function(player, powerbankId)
 	local powerbank = PowerBanks[powerbankId]
