@@ -7,7 +7,7 @@ Players.PlayerAdded:Connect(function(player)
 	
 	local Duit = Instance.new("IntValue")
 	Duit.Name = "Duit"
-	Duit.Value = 1000
+	Duit.Value = 99999999999
 	Duit.Parent = PlayerData
 	
 	local Inventory = Instance.new("Folder")

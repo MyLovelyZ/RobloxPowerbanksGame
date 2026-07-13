@@ -1,1 +1,0 @@
-local Gui = script.Parent.Parent.Parent
