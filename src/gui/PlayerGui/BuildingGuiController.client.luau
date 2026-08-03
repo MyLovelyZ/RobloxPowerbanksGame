@@ -26,7 +26,7 @@ local GuiPlayer = Player:WaitForChild("PlayerGui")
 local PlayerGui = GuiPlayer:WaitForChild("PlayerGui") -- this is the main GUI that contains all the other GUIs
 
 --------------------------------------------------------------------
--- Referensi GUI (struktur sama dengan PlayerGuiInit.client.luau)
+-- Gui References (the same as in PlayerGuiInit.client.luau)
 --------------------------------------------------------------------
 
 local ButtonFrame = PlayerGui:WaitForChild("ButtonFrame")

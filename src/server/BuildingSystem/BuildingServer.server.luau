@@ -2,20 +2,26 @@
 	BuildingServer
 	- Membuat RemoteEvent + folder yang dibutuhkan (jika belum ada)
 	- Menerima permintaan place dari client, lalu MEMVALIDASI ULANG semuanya
-	  di server (posisi snap, di dalam area, tidak tabrakan, jarak player)
-	  supaya tidak bisa di-exploit.
+	  di server supaya tidak bisa di-exploit:
+	  1. Player hanya boleh build di PLOT MILIKNYA sendiri (cek Owner dari PlotSystem)
+	  2. Posisi di-snap ulang ke grid BuildArea milik plot itu
+	  3. Harus di dalam BuildArea
+	  4. Tidak boleh tabrakan dengan item yang sudah dipasang / rumah (Bangunan)
+	  5. Player tidak boleh terlalu jauh dari titik build
 
-	CATATAN: Blok "setup contoh" di bawah membuat BuildArea + 2 item contoh
-	otomatis kalau belum ada, supaya sistem langsung bisa dites.
-	Kalau kamu sudah punya area/item sendiri di Studio, blok itu tidak
-	melakukan apa-apa (atau boleh kamu hapus).
+	AREA BUILD:
+	- Memakai plot > Building > Bawah<level> (sama dengan spawn point bangunan
+	  yang dipakai BuildingLoader). Level diambil dari PlayerData.PlotLevel.
+	- Folder "PlacedItems" di dalam plot dibuat otomatis oleh script ini.
 ]]
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local BuildingSystem = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Modules"):WaitForChild("BuildingSystem")
 local BuildConfig = require(BuildingSystem:WaitForChild("BuildConfig"))
 local GridUtil = require(BuildingSystem:WaitForChild("GridUtil"))
+local PlotUtil = require(BuildingSystem:WaitForChild("PlotUtil"))
 
 --------------------------------------------------------------------
 -- Setup folder & remote
@@ -36,23 +42,28 @@ local remotesFolder = getOrCreate(ReplicatedStorage, BuildConfig.REMOTES_FOLDER_
 local placeRemote = getOrCreate(remotesFolder, "PlaceItem", "RemoteEvent") :: RemoteEvent
 
 local itemsFolder = getOrCreate(ReplicatedStorage, BuildConfig.ITEMS_FOLDER_NAME, "Folder")
-local placedFolder = getOrCreate(workspace, BuildConfig.PLACED_FOLDER_NAME, "Folder")
 
---------------------------------------------------------------------
--- Setup contoh (BuildArea + item contoh) — hanya jika belum ada
---------------------------------------------------------------------
+-- Siapkan folder PlacedItems di setiap plot + peringatan kalau BuildArea belum ada
+local plotsFolder = PlotUtil.getPlotsFolder()
 
-if not workspace:FindFirstChild(BuildConfig.BUILD_AREA_NAME) then
-	local area = Instance.new("Part")
-	area.Name = BuildConfig.BUILD_AREA_NAME
-	area.Size = Vector3.new(64, 1, 64) -- kelipatan GRID_SIZE supaya kotak pas
-	area.Position = Vector3.new(0, 0.5, 0)
-	area.Anchored = true
-	area.Color = Color3.fromRGB(90, 140, 90)
-	area.Material = Enum.Material.Plastic
-	area.TopSurface = Enum.SurfaceType.Studs -- visual kotak-kotak sederhana
-	area.Parent = workspace
+local function setupPlot(plot: Instance)
+	getOrCreate(plot, BuildConfig.PLACED_FOLDER_NAME, "Folder")
+
+	if not PlotUtil.getBuildArea(plot, 1) then
+		warn("[BuildingServer] Plot '" .. plot.Name .. "' belum punya '"
+			.. BuildConfig.BUILDING_FOLDER_NAME .. " > " .. BuildConfig.BUILD_AREA_PREFIX
+			.. "1'. Player di plot ini tidak bisa build.")
+	end
 end
+
+for _, plot in plotsFolder:GetChildren() do
+	setupPlot(plot)
+end
+plotsFolder.ChildAdded:Connect(setupPlot)
+
+--------------------------------------------------------------------
+-- Setup item contoh — hanya jika folder item masih kosong
+--------------------------------------------------------------------
 
 local function makeSampleItem(name: string, size: Vector3, color: Color3)
 	if itemsFolder:FindFirstChild(name) then
@@ -72,7 +83,6 @@ local function makeSampleItem(name: string, size: Vector3, color: Color3)
 	model.Parent = itemsFolder
 end
 
--- Item contoh: 1 kotak (4x4) dan 2 kotak (8x4, untuk tes rotasi)
 if #itemsFolder:GetChildren() == 0 then
 	makeSampleItem("Kotak_1x1", Vector3.new(4, 4, 4), Color3.fromRGB(230, 180, 80))
 	makeSampleItem("Balok_2x1", Vector3.new(8, 4, 4), Color3.fromRGB(120, 160, 230))
@@ -81,10 +91,6 @@ end
 --------------------------------------------------------------------
 -- Validasi & penempatan
 --------------------------------------------------------------------
-
-local overlapParams = OverlapParams.new()
-overlapParams.FilterType = Enum.RaycastFilterType.Include
-overlapParams.FilterDescendantsInstances = { placedFolder }
 
 placeRemote.OnServerEvent:Connect(function(player, itemName, targetPos, rotationY)
 	-- Validasi tipe data dari client
@@ -97,10 +103,18 @@ placeRemote.OnServerEvent:Connect(function(player, itemName, targetPos, rotation
 		return
 	end
 
-	local area = workspace:FindFirstChild(BuildConfig.BUILD_AREA_NAME)
-	if not area or not area:IsA("BasePart") then
+	-- Player hanya boleh build di plot miliknya sendiri
+	local plot = PlotUtil.getPlayerPlot(player)
+	if not plot then
 		return
 	end
+
+	local area = PlotUtil.getBuildArea(plot, PlotUtil.getPlotLevel(player))
+	if not area then
+		return
+	end
+
+	local placedFolder = getOrCreate(plot, BuildConfig.PLACED_FOLDER_NAME, "Folder")
 
 	-- Rapikan rotasi ke kelipatan ROTATION_STEP
 	rotationY = (math.round(rotationY / BuildConfig.ROTATION_STEP) * BuildConfig.ROTATION_STEP) % 360
@@ -119,18 +133,22 @@ placeRemote.OnServerEvent:Connect(function(player, itemName, targetPos, rotation
 	local bbSize, pivotToBB = GridUtil.getModelBounds(template)
 	local snapped = GridUtil.snapToGrid(area, targetPos, bbSize, rotationY)
 
-	-- Harus di dalam area build
+	-- Harus di dalam BuildArea milik plot ini
 	if not GridUtil.isInsideArea(area, snapped, bbSize, rotationY) then
 		return
 	end
 
-	-- Tidak boleh tabrakan dengan item lain yang sudah dipasang
+	-- Tidak boleh tabrakan dengan item yang sudah dipasang / rumah di plot ini
+	local overlapParams = OverlapParams.new()
+	overlapParams.FilterType = Enum.RaycastFilterType.Include
+	overlapParams.FilterDescendantsInstances = PlotUtil.getCollisionInstances(plot)
+
 	local overlapping = workspace:GetPartBoundsInBox(snapped, bbSize * 0.98, overlapParams)
 	if #overlapping > 0 then
 		return
 	end
 
-	-- Semua valid -> pasang item
+	-- Semua valid -> pasang item ke plot player
 	local clone = template:Clone()
 	clone:PivotTo(snapped * pivotToBB:Inverse())
 	for _, part in clone:GetDescendants() do
@@ -140,4 +158,26 @@ placeRemote.OnServerEvent:Connect(function(player, itemName, targetPos, rotation
 	end
 	clone:SetAttribute("Owner", player.UserId)
 	clone.Parent = placedFolder
+end)
+
+--------------------------------------------------------------------
+-- Bersihkan hasil build saat player keluar
+-- (pakai PlotNumber karena Owner mungkin sudah dikosongkan PlotLoader)
+--------------------------------------------------------------------
+
+Players.PlayerRemoving:Connect(function(player)
+	local plotNumber = player:FindFirstChild("PlotNumber")
+	if not plotNumber then
+		return
+	end
+
+	local plot = PlotUtil.getPlotByNumber(plotNumber.Value)
+	if not plot then
+		return
+	end
+
+	local placedFolder = PlotUtil.getPlacedFolder(plot)
+	if placedFolder then
+		placedFolder:ClearAllChildren()
+	end
 end)

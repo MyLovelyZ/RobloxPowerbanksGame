@@ -45,25 +45,33 @@ local function spawnHouse(player)
 		return
 	end
 
-	local spawnPoint = plot:FindFirstChild("Building"):FindFirstChild("Bawah"..level)
-	if not spawnPoint then 
+	local buildingFolder = plot:FindFirstChild("Building")
+	local spawnPoint = buildingFolder and buildingFolder:FindFirstChild("Bawah"..level)
+	if not spawnPoint then
 		warn("SpawnPoint Bawah"..level.." tidak ada di plot", plot.Name)
-		return 
+		return
+	end
+
+	-- Bawah<level> bisa berupa Part (pakai CFrame) atau Model (pakai pivot)
+	local spawnCFrame
+	if spawnPoint:IsA("BasePart") then
+		spawnCFrame = spawnPoint.CFrame
+	elseif spawnPoint:IsA("Model") then
+		spawnCFrame = spawnPoint:GetPivot()
+	else
+		warn("Bawah"..level.." di plot", plot.Name, "harus Part atau Model, dapat:", spawnPoint.ClassName)
+		return
 	end
 
 	local house = houseModel:Clone()
 	house.Name = "Bangunan"..level
 
-	if house.PrimaryPart then
-		local plotNumber = tonumber(plot.Name)
+	local plotNumber = tonumber(plot.Name)
 
-		if plotNumber and plotNumber > 4 then
-			house:SetPrimaryPartCFrame(spawnPoint.CFrame * CFrame.Angles(0, math.rad(180), 0))
-		else
-			house:SetPrimaryPartCFrame(spawnPoint.CFrame)
-		end
+	if plotNumber and plotNumber > 4 then
+		house:PivotTo(spawnCFrame * CFrame.Angles(0, math.rad(180), 0))
 	else
-		warn("PrimaryPart belum diset di", house.Name)
+		house:PivotTo(spawnCFrame)
 	end
 
 	house.Parent = plot

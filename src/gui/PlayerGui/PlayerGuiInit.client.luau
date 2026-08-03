@@ -10,6 +10,9 @@ local GuiFolder = PlayerGui:WaitForChild("GuiFolder")
 
 -- Initialize inside the ButtonFrame
 
+local INACTIVE_BUTTON_COLOR = Color3.fromRGB(147, 248, 255)
+local ACTIVE_BUTTON_COLOR = Color3.fromRGB(0, 255, 170)
+
 local BuildButton = ButtonFrame:WaitForChild("BuildButton")
 local InventoryButton = ButtonFrame:WaitForChild("InventoryButton")
 local PremiumStoreButton = ButtonFrame:WaitForChild("PremiumStoreButton")
@@ -25,6 +28,19 @@ local AddMoneyButton = MoneyFrame:WaitForChild("AddMoneyButton") -- this is the 
 -- Initialize inside the GuiFolder
 
 local BuildFrame = GuiFolder:WaitForChild("BuildFrame")
+local InventoryFrame = GuiFolder:WaitForChild("InventoryFrame")
+local PremiumStoreFrame = GuiFolder:WaitForChild("PremiumStoreFrame")
+local SettingsFrame = GuiFolder:WaitForChild("SettingsFrame")
+local StoreOverviewFrame = GuiFolder:WaitForChild("StoreOverviewFrame")
+
+local function InitializeGuiFolder()
+    BuildFrame.Visible = false
+    InventoryFrame.Visible = false
+    PremiumStoreFrame.Visible = false
+    SettingsFrame.Visible = false
+    StoreOverviewFrame.Visible = false
+end
+
 --still a lot of things to initialize inside the GuiFolder, but for now we will just initialize the BuildFrame and its children because its the most important feature to add right now in the game
 
 -- Initialize inside the BuildFrame
@@ -53,7 +69,7 @@ local function initializeBuildFrame()
         local ItemName = InfoFrame:WaitForChild("ItemName")
         local ItemDesc = InfoFrame:WaitForChild("ItemDesc")
 
-        -- otehr
+        -- other
 
         PriceButton.Visible = true
         ItemImage.Visible = true
@@ -73,6 +89,125 @@ local function initializeBuildFrame()
     InitializeInfoFrame()
 end
 
--- Initialize the Functions
+local function initializeInventoryFrame()
+    local function InitializeMainInventoryFrame()
+        -- ini bagian main inventory frame
+        local MainInventoryFrame = InventoryFrame:WaitForChild("MainInventoryFrame")
 
+        -- Buat bagian close buttonnya
+        local CloseButton = MainInventoryFrame:WaitForChild("CloseButton"):WaitForChild("CloseButton")
+        CloseButton.MouseButton1Click:Connect(function()
+            InventoryFrame.Visible = false
+        end)
+
+        -- Bagian Button bawah
+        local AllButton = MainInventoryFrame:WaitForChild("AllFrame"):WaitForChild("AllButton")
+        local EmptyButton = MainInventoryFrame:WaitForChild("EmptyFrame"):WaitForChild("EmptyButton")
+        local FullButton = MainInventoryFrame:WaitForChild("FullFrame"):WaitForChild("FullButton")
+
+        -- Bagian ScrollingFrame
+        local ScrollingItems = MainInventoryFrame:WaitForChild("ScrollingItems")
+        local ItemTemplate = ScrollingItems:WaitForChild("ImageButtonFrame1")
+    end
+
+    local function InitializeCheckItemsFrame()
+        -- nah ini bagian CheckItems
+        local CheckItems = InventoryFrame:WaitForChild("CheckItems")
+        local ItemName = CheckItems:WaitForChild("Name")
+        local ItemImage = CheckItems:WaitForChild("Picture")
+
+    end
+
+    local function InitializeButtonInventoryFrame()
+        local ChargerButton = InventoryFrame:WaitForChild("ChargerButton")
+        local PowerBankButton = InventoryFrame:WaitForChild("PowerBankButton")
+    end
+
+    InitializeMainInventoryFrame()
+    InitializeCheckItemsFrame()
+    InitializeButtonInventoryFrame()
+end
+
+-- The Function for all the button frame
+
+local function initializeButtonFrame()
+    BuildButton.Visible = true --partnernya BuildFrame
+    InventoryButton.Visible = true
+    PremiumStoreButton.Visible = true
+    SettingsButton.Visible = true
+    StoreOverviewButton.Visible = true
+
+    -- fungsinya
+
+    BuildButton.MouseButton1Click:Connect(function()
+        local WasVisible = BuildFrame.Visible
+
+        InitializeGuiFolder()
+        BuildFrame.Visible = not WasVisible
+
+        if BuildFrame.Visible then
+            BuildButton.BackgroundColor3 = ACTIVE_BUTTON_COLOR
+        else
+            BuildButton.BackgroundColor3 = INACTIVE_BUTTON_COLOR
+        end
+    end)
+
+    InventoryButton.MouseButton1Click:Connect(function()
+        local WasVisible = InventoryFrame.Visible
+
+        InitializeGuiFolder()
+        InventoryFrame.Visible = not WasVisible
+
+        if InventoryFrame.Visible then
+            InventoryButton.BackgroundColor3 = ACTIVE_BUTTON_COLOR
+        else
+            InventoryButton.BackgroundColor3 = INACTIVE_BUTTON_COLOR
+        end
+    end)
+
+    PremiumStoreButton.MouseButton1Click:Connect(function()
+        local WasVisible = PremiumStoreFrame.Visible
+
+        InitializeGuiFolder()
+        PremiumStoreFrame.Visible = not WasVisible
+
+        if PremiumStoreFrame.Visible then
+            PremiumStoreButton.BackgroundColor3 = ACTIVE_BUTTON_COLOR
+        else
+            PremiumStoreButton.BackgroundColor3 = INACTIVE_BUTTON_COLOR
+        end
+    end)
+
+    SettingsButton.MouseButton1Click:Connect(function()
+        local WasVisible = SettingsFrame.Visible
+
+        InitializeGuiFolder()
+        SettingsFrame.Visible = not WasVisible
+
+        if SettingsFrame.Visible then
+            SettingsButton.BackgroundColor3 = ACTIVE_BUTTON_COLOR
+        else
+            SettingsButton.BackgroundColor3 = INACTIVE_BUTTON_COLOR
+        end
+    end)
+
+    StoreOverviewButton.MouseButton1Click:Connect(function()
+        local WasVisible = StoreOverviewFrame.Visible
+
+        InitializeGuiFolder()
+        StoreOverviewFrame.Visible = not WasVisible
+
+        if StoreOverviewFrame.Visible then
+            StoreOverviewButton.BackgroundColor3 = ACTIVE_BUTTON_COLOR
+        else
+            StoreOverviewButton.BackgroundColor3 = INACTIVE_BUTTON_COLOR
+        end
+    end)
+end
+
+-- Initialize the Functions
+    
+InitializeGuiFolder()
+initializeButtonFrame()
 initializeBuildFrame()
+initializeInventoryFrame()

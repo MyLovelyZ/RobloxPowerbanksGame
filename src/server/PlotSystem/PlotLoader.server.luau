@@ -20,6 +20,7 @@ Players.PlayerAdded:Connect(function(Player)
 
 	if PlotNumber.Value == 0 then
 		Player:Kick("Server Penuh")
+		return
 	end
 
 	local PlotFolder = PlotsFolder:FindFirstChild(tostring(PlotNumber.Value))
@@ -40,4 +41,27 @@ Players.PlayerAdded:Connect(function(Player)
 	Sign.PlayerDisplay.SurfaceGui.PlayerIcon.Image = PlayerIcon
 	Sign.PlayerDisplay.SurfaceGui.Enabled = true
 
+end)
+
+-- Bebaskan plot saat player keluar supaya bisa dipakai player berikutnya
+Players.PlayerRemoving:Connect(function(Player)
+	local PlotNumber = Player:FindFirstChild("PlotNumber")
+	if not PlotNumber or PlotNumber.Value == 0 then
+		return
+	end
+
+	local Plot = PlotsFolder:FindFirstChild(tostring(PlotNumber.Value))
+	if not Plot then
+		return
+	end
+
+	local Owner = Plot:FindFirstChild("Owner")
+	if Owner then
+		Owner.Value = nil
+	end
+
+	local Sign = Plot:FindFirstChild("Sign")
+	if Sign then
+		Sign.PlayerDisplay.SurfaceGui.Enabled = false
+	end
 end)

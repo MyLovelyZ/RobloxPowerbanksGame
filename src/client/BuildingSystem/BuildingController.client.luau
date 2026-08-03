@@ -1,8 +1,10 @@
 --[[
 	BuildingController (client)
 	- Menampilkan preview "hantu" (ghost) item yang mengikuti mouse
-	- Snap ke kotak grid di atas BuildArea
-	- Hijau = boleh dipasang, Merah = tidak boleh (di luar area / tabrakan / kejauhan)
+	- Snap ke kotak grid di atas area build milik PLOT PLAYER SENDIRI
+	  (plot > Building > Bawah<level>, mengikuti PlayerData.PlotLevel)
+	- Hijau = boleh dipasang, Merah = tidak boleh
+	  (di luar area / tabrakan dengan item terpasang atau rumah / kejauhan)
 	- Kontrol: Klik Kiri = pasang, R = rotasi, X = batal
 
 	CARA PAKAI DARI GUI KAMU:
@@ -19,21 +21,45 @@ local UserInputService = game:GetService("UserInputService")
 local BuildingSystem = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Modules"):WaitForChild("BuildingSystem")
 local BuildConfig = require(BuildingSystem:WaitForChild("BuildConfig"))
 local GridUtil = require(BuildingSystem:WaitForChild("GridUtil"))
+local PlotUtil = require(BuildingSystem:WaitForChild("PlotUtil"))
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
 local placeRemote = ReplicatedStorage:WaitForChild(BuildConfig.REMOTES_FOLDER_NAME):WaitForChild("PlaceItem") :: RemoteEvent
 local itemsFolder = ReplicatedStorage:WaitForChild(BuildConfig.ITEMS_FOLDER_NAME)
-local buildArea = workspace:WaitForChild(BuildConfig.BUILD_AREA_NAME) :: BasePart
-local placedFolder = workspace:WaitForChild(BuildConfig.PLACED_FOLDER_NAME)
 
 -- Signal untuk GUI (GUI kamu tinggal Fire signal ini, lihat komentar di atas)
 local selectSignal = Instance.new("BindableEvent")
 selectSignal.Name = BuildConfig.SELECT_SIGNAL_NAME
 selectSignal.Parent = ReplicatedStorage
 
---------------------------------------------------------------------w
+--------------------------------------------------------------------
+-- Cari plot milik player (diklaim oleh PlotLoader di server)
+--------------------------------------------------------------------
+
+local plot: Instance? = nil
+
+task.spawn(function()
+	-- Tunggu PlotLoader selesai membagikan plot (PlotNumber dibuat & diisi di server)
+	local plotNumber = player:WaitForChild("PlotNumber") :: IntValue
+	while plotNumber.Value == 0 do
+		plotNumber.Changed:Wait()
+	end
+
+	plot = PlotUtil.getPlotsFolder():WaitForChild(tostring(plotNumber.Value))
+end)
+
+-- Area build mengikuti level plot (Bawah1, Bawah2, ...), jadi dicari ulang
+-- setiap kali dibutuhkan supaya otomatis pindah saat PlotLevel naik.
+local function getMyBuildArea(): Instance?
+	if not plot then
+		return nil
+	end
+	return PlotUtil.getBuildArea(plot, PlotUtil.getPlotLevel(player))
+end
+
+--------------------------------------------------------------------
 -- State mode build
 --------------------------------------------------------------------
 
@@ -49,7 +75,6 @@ local renderConn: RBXScriptConnection? = nil
 
 local overlapParams = OverlapParams.new()
 overlapParams.FilterType = Enum.RaycastFilterType.Include
-overlapParams.FilterDescendantsInstances = { placedFolder }
 
 local function stopBuilding()
 	currentItemName = nil
@@ -67,9 +92,14 @@ local function stopBuilding()
 end
 
 local function updateGhost()
-	if not ghost then
+	local area = getMyBuildArea()
+	if not ghost or not plot or not area then
+		lastValid = false
 		return
 	end
+
+	-- Item terpasang + rumah (Bangunan) di plot ini dianggap penghalang
+	local collisionInstances = PlotUtil.getCollisionInstances(plot)
 
 	-- Raycast dari kamera ke arah mouse
 	local mousePos = UserInputService:GetMouseLocation()
@@ -77,7 +107,10 @@ local function updateGhost()
 
 	local rayParams = RaycastParams.new()
 	rayParams.FilterType = Enum.RaycastFilterType.Exclude
-	local exclude = { ghost, placedFolder }
+	local exclude: { Instance } = { ghost }
+	for _, inst in collisionInstances do
+		table.insert(exclude, inst)
+	end
 	if player.Character then
 		table.insert(exclude, player.Character)
 	end
@@ -92,12 +125,15 @@ local function updateGhost()
 	end
 
 	lastTargetPos = result.Position
-	local snapped = GridUtil.snapToGrid(buildArea, result.Position, ghostSize, rotationY)
+	local snapped = GridUtil.snapToGrid(area, result.Position, ghostSize, rotationY)
 	ghost:PivotTo(snapped * ghostPivotToBB:Inverse())
 
-	-- Cek valid: di dalam area, tidak tabrakan, dan tidak terlalu jauh
-	local insideArea = GridUtil.isInsideArea(buildArea, snapped, ghostSize, rotationY)
+	-- Cek valid: di dalam area plot sendiri, tidak tabrakan, dan tidak terlalu jauh
+	local insideArea = GridUtil.isInsideArea(area, snapped, ghostSize, rotationY)
+
+	overlapParams.FilterDescendantsInstances = collisionInstances
 	local overlapping = #workspace:GetPartBoundsInBox(snapped, ghostSize * 0.98, overlapParams) > 0
+
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	local inRange = root ~= nil and (root.Position - snapped.Position).Magnitude <= BuildConfig.MAX_PLACE_DISTANCE
 
@@ -111,6 +147,12 @@ end
 
 local function startBuilding(itemName: string)
 	stopBuilding()
+
+	if not getMyBuildArea() then
+		warn("[BuildingController] Belum bisa build: plot atau area '"
+			.. BuildConfig.BUILD_AREA_PREFIX .. "<level>' belum siap.")
+		return
+	end
 
 	local template = itemsFolder:FindFirstChild(itemName)
 	if not template or not template:IsA("Model") then
@@ -163,7 +205,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		stopBuilding()
 	elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
 		if lastValid and lastTargetPos then
-			-- Kirim posisi mentah; server yang menghitung ulang snap-nya
+			-- Kirim posisi mentah; server yang menghitung ulang snap + validasi plot
 			placeRemote:FireServer(currentItemName, lastTargetPos, rotationY)
 			-- Mode build tetap aktif supaya bisa memasang banyak item sekaligus.
 			-- Kalau mau sekali pasang langsung berhenti, panggil stopBuilding() di sini.
