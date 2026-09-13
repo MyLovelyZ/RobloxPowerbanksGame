@@ -19,6 +19,14 @@ local PremiumStoreButton = ButtonFrame:WaitForChild("PremiumStoreButton")
 local SettingsButton = ButtonFrame:WaitForChild("SettingsButton")
 local StoreOverviewButton = ButtonFrame:WaitForChild("StoreOverviewButton")
 
+local function initializeActiveButtonFrame()
+	BuildButton.BackgroundColor3 = INACTIVE_BUTTON_COLOR
+	InventoryButton.BackgroundColor3 = INACTIVE_BUTTON_COLOR
+	PremiumStoreButton.BackgroundColor3 = INACTIVE_BUTTON_COLOR
+	SettingsButton.BackgroundColor3 = INACTIVE_BUTTON_COLOR
+	StoreOverviewButton.BackgroundColor3 = INACTIVE_BUTTON_COLOR
+end
+
 -- Initialize inside the MoneyFrame
 
 local ImageLabelZP = MoneyFrame:WaitForChild("ImageLabelZP") -- this is the image of the money icon
@@ -58,12 +66,12 @@ local function initializeBuildFrame()
     local InfoFrame = AddBuildingFrame:WaitForChild("InfoFrame") -- this is the frame that contains the information about the selected item
     local ScrollingFrame = AddBuildingFrame:WaitForChild("ScrollingFrame") -- this is the frame that contains the items that the player can add to their build area
 
-    local function InitializeScrollingFrame()
+    local function initializeScrollingFrame()
         local BuildingItems = ScrollingFrame:WaitForChild("BuildingItemsTemplate") -- this is the frame that contains the items that the player can add to their build area
         BuildingItems.Visible = false -- this is to hide the template so that it doesn't show up in the scrolling frame
     end
 
-    local function InitializeInfoFrame()
+    local function initializeInfoFrame()
         local PriceButton = InfoFrame:WaitForChild("PriceFrame"):WaitForChild("PriceButton")
         local ItemImage = InfoFrame:WaitForChild("ItemImage")
         local ItemName = InfoFrame:WaitForChild("ItemName")
@@ -85,8 +93,8 @@ local function initializeBuildFrame()
     InfoFrame.Visible = false
     ScrollingFrame.Visible = true
 
-    InitializeScrollingFrame()
-    InitializeInfoFrame()
+    initializeScrollingFrame()
+    initializeInfoFrame()
 end
 
 local function initializeInventoryFrame()
@@ -146,6 +154,7 @@ local function initializeButtonFrame()
         BuildFrame.Visible = not WasVisible
 
         if BuildFrame.Visible then
+			initializeActiveButtonFrame()
             BuildButton.BackgroundColor3 = ACTIVE_BUTTON_COLOR
         else
             BuildButton.BackgroundColor3 = INACTIVE_BUTTON_COLOR
@@ -159,6 +168,7 @@ local function initializeButtonFrame()
         InventoryFrame.Visible = not WasVisible
 
         if InventoryFrame.Visible then
+			initializeActiveButtonFrame()
             InventoryButton.BackgroundColor3 = ACTIVE_BUTTON_COLOR
         else
             InventoryButton.BackgroundColor3 = INACTIVE_BUTTON_COLOR
@@ -172,6 +182,7 @@ local function initializeButtonFrame()
         PremiumStoreFrame.Visible = not WasVisible
 
         if PremiumStoreFrame.Visible then
+			initializeActiveButtonFrame()
             PremiumStoreButton.BackgroundColor3 = ACTIVE_BUTTON_COLOR
         else
             PremiumStoreButton.BackgroundColor3 = INACTIVE_BUTTON_COLOR
@@ -185,6 +196,7 @@ local function initializeButtonFrame()
         SettingsFrame.Visible = not WasVisible
 
         if SettingsFrame.Visible then
+			initializeActiveButtonFrame()
             SettingsButton.BackgroundColor3 = ACTIVE_BUTTON_COLOR
         else
             SettingsButton.BackgroundColor3 = INACTIVE_BUTTON_COLOR
@@ -198,6 +210,7 @@ local function initializeButtonFrame()
         StoreOverviewFrame.Visible = not WasVisible
 
         if StoreOverviewFrame.Visible then
+			initializeActiveButtonFrame()
             StoreOverviewButton.BackgroundColor3 = ACTIVE_BUTTON_COLOR
         else
             StoreOverviewButton.BackgroundColor3 = INACTIVE_BUTTON_COLOR
